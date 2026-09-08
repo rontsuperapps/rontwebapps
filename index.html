@@ -1,17 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <!-- MIGRASI PWA — AUTH GUARD PALING AWAL
-       Wajib jadi elemen PERTAMA di <head>, sebelum apa pun (CSS,
-       font, dst) sempat dimuat/dirender. Browser menjalankan script
-       synchronous ini SEBELUM melanjutkan parsing <body>, jadi kalau
-       tidak ada token, redirect ke login.html terjadi sebelum
-       dashboard sempat "kelihatan" sama sekali (tidak ada flash). -->
-  <script>
-    if (!localStorage.getItem('ront_session_token')) {
-      location.replace('login.html');
-    }
-  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Web Ticketing Config</title>
@@ -360,7 +349,7 @@ body { font-family: 'Poppins', sans-serif; font-size: 13px; background-color: va
 
 .topbar-popover {
   position: absolute; top: calc(100% + 10px); right: 0; z-index: 20000;
-  width: 300px; background: var(--card-bg); border: 1px solid var(--border-color);
+  width: 300px; max-width: calc(100vw - 24px); background: var(--card-bg); border: 1px solid var(--border-color);
   border-radius: 12px; box-shadow: 0 12px 28px rgba(16,24,40,0.18);
   display: none; flex-direction: column; overflow: hidden;
 }
@@ -488,23 +477,14 @@ body { font-family: 'Poppins', sans-serif; font-size: 13px; background-color: va
    Kebutuhan ONT di atas, Presensi Teknisi di bawah) vs kolom kanan
    (Rekap Bulanan CLOSE & COMPLETE). 3fr:2fr -- kolom kiri lebih lebar
    karena isinya 2 tabel berdampingan + 1 tabel presensi. */
-.chart-row-tactical-main { grid-template-columns: 3fr 2fr; align-items: start; }
+.chart-row-tactical-main { grid-template-columns: 1fr 1fr; align-items: start; }
 @media (max-width: 1100px) { .chart-row-tactical-main { grid-template-columns: 1fr; } }
-
-/* Baris ringkasan Tactical (Status Ticket / Kebutuhan ONT + Tren / Rekap
-   Bulanan): align-items start supaya setiap kartu HANYA setinggi
-   kontennya sendiri (tidak dipaksa stretch mengikuti kartu tertinggi di
-   baris yang sama) -- ini yang menghilangkan area kosong di bawah kartu
-   pendek seperti Kebutuhan ONT & Tren. */
-.chart-row-tactical-summary { grid-template-columns: 1fr 1fr 1fr; align-items: start; }
-@media (max-width: 1200px) { .chart-row-tactical-summary { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 700px)  { .chart-row-tactical-summary { grid-template-columns: 1fr; } }
 
 /* Kolom tengah (Kebutuhan ONT di atas, Tren chart di bawah) -- 2 kartu
    ditumpuk vertikal dalam 1 slot grid, masing-masing tetap kartu sendiri. */
 .chart-col-stack { display: flex; flex-direction: column; gap: 14px; }
 
-.pivot-table-wrap { max-height: 260px; overflow: auto; }
+.pivot-table-wrap { max-height: 260px; overflow: auto; -webkit-overflow-scrolling: touch; }
 .pivot-table-wrap table { white-space: normal; }
 .pivot-table-wrap thead th { position: sticky; top: 0; z-index: 1; }
 .pivot-table-wrap .pivot-total-row td { background: var(--table-th-bg); font-weight: 700; }
@@ -525,8 +505,8 @@ body { font-family: 'Poppins', sans-serif; font-size: 13px; background-color: va
 .pivot-table-wrap-full .pivot-grouped-table thead tr:first-child th,
 .pivot-table-wrap-full .pivot-grouped-table thead tr:last-child th { position: static; }
 @media (max-width: 768px) {
-  .pivot-grouped-table { font-size: 8.5px; }
-  .pivot-grouped-table th { font-size: 7px; padding: 4px 2px; }
+  .pivot-grouped-table { font-size: 9.5px; }
+  .pivot-grouped-table th { font-size: 8.5px; padding: 4px 3px; }
   .pivot-grouped-table td { padding: 4px 3px; }
   .pivot-grouped-table thead tr:first-child th:first-child,
   .pivot-grouped-table tbody td:first-child { white-space: normal; word-break: normal; }
@@ -557,7 +537,7 @@ body { font-family: 'Poppins', sans-serif; font-size: 13px; background-color: va
 .donut-legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .donut-legend-pct { font-weight: 700; color: var(--text-title); margin-left: auto; }
 
-.table-container { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); overflow-x: auto; box-shadow: var(--shadow-card); }
+.table-container { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); overflow-x: auto; -webkit-overflow-scrolling: touch; box-shadow: var(--shadow-card); }
 
 .table-search-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; }
 .search-input-wrap { position: relative; flex: 1; min-width: 220px; max-width: 340px; }
@@ -680,13 +660,14 @@ tbody tr:hover td { background: var(--table-th-bg); }
 .profile-modal-label { font-size: 11px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 2px; }
 .profile-modal-field { margin-top: 10px; }
 
-.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(16,24,40,0.55); z-index: 10005; justify-content: center; align-items: center; padding: 15px; }
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(16,24,40,0.55); z-index: 10005; justify-content: center; align-items: center; padding: 15px; overflow-y: auto; }
 .modal-overlay-top { z-index: 10010; }
 .modal-card {
   background: var(--card-bg); border-radius: 16px; border: 1px solid var(--border-color);
   width: 100%; max-width: 420px; padding: 20px;
   box-shadow: 0 20px 40px rgba(16,24,40,0.2);
   color: var(--text-main);
+  max-height: calc(100vh - 30px); overflow-y: auto;
 }
 .modal-header h2 { font-size: 15px; font-weight: 700; color: var(--text-title); }
 .modal-header p  { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
@@ -714,6 +695,15 @@ tbody tr:hover td { background: var(--table-th-bg); }
 @media (max-width: 1024px) { .inbox-dashboard { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 900px) { .chart-row { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .inbox-dashboard { grid-template-columns: repeat(2, 1fr); } .inbox-card:last-child { grid-column: span 2; } }
+
+/* Kartu status Tactical (7 kartu: OPEN/ASSIGN/KENDALA/CANCEL/CLOSE/
+   COMPLETE/TOTAL) -- breakpoint sendiri karena jumlah kartunya beda dari
+   .inbox-dashboard biasa (5 kartu). Tanpa ini kartu akan dipaksa sejajar
+   7 kolom sampai ke layar HP dan jadi terlalu sempit untuk dibaca. */
+.inbox-dashboard-tactical { grid-template-columns: repeat(7, 1fr); }
+@media (max-width: 1200px) { .inbox-dashboard-tactical { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 768px)  { .inbox-dashboard-tactical { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 480px)  { .inbox-dashboard-tactical { grid-template-columns: repeat(2, 1fr); } .inbox-dashboard-tactical .inbox-card:last-child { grid-column: span 2; } }
 @media (max-width: 768px) {
   body { flex-direction: column; }
   .sidebar { position: fixed; top: 0; left: 0; height: 100vh; width: 250px !important; transform: translateX(-100%); transition: transform 0.22s ease; box-shadow: 4px 0 16px rgba(0,0,0,0.08); }
@@ -727,6 +717,14 @@ tbody tr:hover td { background: var(--table-th-bg); }
   .top-bar { flex-direction: column; align-items: flex-start; gap: 10px; height: auto; padding: 16px 24px; }
   .top-actions-wrapper { width: 100%; justify-content: space-between; }
   .sidebar-overlay.active { display: block; }
+  .btn-page { width: 32px; height: 32px; font-size: 11px; }
+
+  /* iOS Safari otomatis nge-zoom in saat user tap ke field dengan
+     font-size < 16px. Di desktop field ini sengaja kecil (11.5-12px)
+     supaya kompak, tapi di HP dibesarkan ke 16px khusus saat fokus/isi
+     supaya tidak ada zoom yang mengganggu (search box, filter tanggal,
+     dropdown "Tampilkan data", field password Profil Saya, dll). */
+  .search-input, .form-select, .form-textarea { font-size: 16px; }
 }
 
   </style>
@@ -987,7 +985,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
         <div style="margin-top:8px; font-size:10.5px; color:var(--text-muted);" id="tacFilterInfo">Menampilkan seluruh data (tidak difilter tanggal).</div>
       </div>
 
-      <div class="inbox-dashboard" style="grid-template-columns: repeat(7, 1fr);">
+      <div class="inbox-dashboard inbox-dashboard-tactical">
         <div class="inbox-card open"><h3>OPEN</h3><div class="value" id="tac-box-open">0</div><div class="pct" id="tac-pct-open">0%</div></div>
         <div class="inbox-card assign" style="border-top-color:#00a2ff;"><h3>ASSIGN</h3><div class="value" id="tac-box-assign">0</div><div class="pct" id="tac-pct-assign">0%</div></div>
         <div class="inbox-card pending"><h3>KENDALA</h3><div class="value" id="tac-box-kendala">0</div><div class="pct" id="tac-pct-kendala">0%</div></div>
@@ -1019,32 +1017,42 @@ tbody tr:hover td { background: var(--table-th-bg); }
         </div>
       </div>
 
-      <!-- Baris 2: kiri = Status Ticket + Kebutuhan ONT (atas), Presensi Teknisi (bawah) | kanan = Rekap Bulanan CLOSE & COMPLETE -->
+      <!-- Baris 2: kiri = Status Ticket | Kebutuhan ONT (atas) + Presensi Teknisi (pas di bawahnya) | kanan = Rekap Bulanan CLOSE & COMPLETE + Perolehan per Service Area -->
       <div class="chart-row chart-row-tactical-main">
-        <div class="chart-col-stack">
-          <div class="chart-row chart-row-2col-equal" style="margin-bottom:0;">
-            <div class="chart-box">
-              <h3><i class="fa-solid fa-clipboard-list"></i>Status Ticket</h3>
-              <div class="pivot-table-wrap" id="tacticalPivotStatusTableWrap"></div>
-            </div>
+        <div class="chart-row chart-row-2col-equal" style="margin-bottom:0;">
+          <div class="chart-box">
+            <h3><i class="fa-solid fa-clipboard-list"></i>Status Ticket</h3>
+            <div class="pivot-table-wrap" id="tacticalPivotStatusTableWrap"></div>
+          </div>
+          <div class="chart-col-stack">
             <div class="chart-box">
               <h3><i class="fa-solid fa-clipboard-list"></i> Kebutuhan ONT</h3>
               <div class="pivot-table-wrap" id="tacticalKebutuhanOntTableWrap"></div>
             </div>
-          </div>
-          <div class="chart-box">
-            <h3><i class="fa-solid fa-user"></i> Presensi Teknisi</h3>
-            <div class="pivot-table-wrap pivot-table-wrap-full" id="tacticalPresensiTableWrap">
-              <div style="text-align:center;color:var(--text-muted);padding:20px 0;">
-                <i class="fa-solid fa-spinner fa-spin" style="opacity:0.6;"></i>
+            <div class="chart-box">
+              <h3><i class="fa-solid fa-user"></i> Presensi Teknisi</h3>
+              <div class="pivot-table-wrap pivot-table-wrap-full" id="tacticalPresensiTableWrap">
+                <div style="text-align:center;color:var(--text-muted);padding:20px 0;">
+                  <i class="fa-solid fa-spinner fa-spin" style="opacity:0.6;"></i>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="chart-box">
-          <h3><i class="fa-solid fa-clipboard-list"></i> Rekap Bulanan CLOSE &amp; COMPLETE</h3>
-          <div class="pivot-table-wrap" id="tacticalMonthlyCloseCompleteWrap"></div>
+        <div class="chart-row chart-row-2col-equal" style="margin-bottom:0;">
+          <div class="chart-box">
+            <h3><i class="fa-solid fa-clipboard-list"></i> Rekap Bulanan CLOSE &amp; COMPLETE</h3>
+            <div class="pivot-table-wrap" id="tacticalMonthlyCloseCompleteWrap"></div>
+          </div>
+          <div class="chart-box">
+            <h3><i class="fa-solid fa-clipboard-list"></i> Perolehan CLOSE &amp; COMPLETE per Service Area</h3>
+            <div class="pivot-table-wrap" id="tacticalCloseCompleteServiceAreaWrap">
+              <div style="text-align:center;color:var(--text-muted);padding:20px 0;">
+                <i class="fa-solid fa-spinner fa-spin" style="opacity:0.6;"></i>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1470,44 +1478,107 @@ tbody tr:hover td { background: var(--table-th-bg); }
 
   <script>
     /* ============================================================
-       MIGRASI PWA — KONFIGURASI API GAS
-       ============================================================
-       Ganti GAS_EXEC_URL dengan URL deployment Web App GAS kamu
-       (harus SAMA dengan yang dipakai di login.html).
+       MIGRASI PWA — KONFIGURASI API GAS (dashboard)
+       Ganti GAS_EXEC_URL dengan URL deployment Web App GAS yang SAMA
+       dipakai di login.html (Deploy > Manage deployments > Web app >
+       URL, yang berakhiran "/exec").
        ============================================================ */
     const GAS_EXEC_URL = 'https://script.google.com/macros/s/AKfycbzIxGwxfyOx_eiIys70uxerWAhE3bHhKdjMeZ664YfNB30na1in8muU9_d3KQGs1WJC/exec';
 
-    // Wrapper pengganti google.script.run. Lihat penjelasan lengkap
-    // soal kenapa text/plain (bukan application/json) di komentar
-    // doPost() pada web_apps.gs.
+    // Token sesi sekarang dibaca dari localStorage (diisi login.html
+    // saat login berhasil) -- dulu disuntikkan lewat scriptlet
+    // <?= sessionToken ?> oleh doGet() di web_apps.gs, karena dashboard
+    // ini di-serve langsung dari GAS. Sekarang index.html adalah file
+    // statis terpisah (GitHub Pages), jadi token dibaca dari browser
+    // storage. Kalau tidak ada token sama sekali, user belum login --
+    // tendang balik ke halaman login statis.
+    const SESSION_TOKEN = localStorage.getItem('ront_session_token');
+
+    if (!SESSION_TOKEN) {
+      window.location.href = 'login.html';
+    }
+
+    // Wrapper pengganti google.script.run. Bentuk request SAMA dengan
+    // yang dipakai login.html ({fn, args}), ditambah "token" otomatis
+    // di setiap request supaya web_apps.gs bisa validasi sesi di
+    // SETIAP pemanggilan (dulu validasi cuma terjadi sekali, waktu
+    // doGet() menentukan boleh/tidaknya halaman dashboard dibuka).
+    // Body dikirim sebagai STRING JSON dengan Content-Type text/plain
+    // supaya browser tidak mengirim CORS preflight (GAS tidak bisa
+    // merespons preflight OPTIONS).
     async function callGAS(fn, args) {
       const res = await fetch(GAS_EXEC_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ fn: fn, args: args || [] })
+        body: JSON.stringify({ fn: fn, args: args || [], token: SESSION_TOKEN })
       });
 
       if (!res.ok) {
         throw new Error('HTTP ' + res.status + ' dari server GAS.');
       }
 
-      return res.json();
+      const data = await res.json();
+
+      // Amplop error dari router (fn tidak dikenal / token invalid /
+      // exception di server) -- BUKAN hasil fungsi asli. Kalau sesi
+      // sudah tidak valid, langsung logout paksa + kembali ke login.
+      if (data && data.__routerError) {
+        if (data.code === 'UNAUTHORIZED') {
+          localStorage.removeItem('ront_session_token');
+          window.location.href = 'login.html';
+        }
+        throw new Error(data.message || ('Router error: ' + data.code));
+      }
+
+      return data;
     }
 
-    // MIGRASI PWA: token sesi dulu di-inject via scriptlet
-    // <?= sessionToken ?> (karena index.html dulu di-render oleh GAS
-    // lewat HtmlService.createTemplateFromFile). Sekarang index.html
-    // adalah file statis di GitHub Pages, jadi token dibaca dari
-    // localStorage (disimpan oleh login.html setelah login sukses).
-    const SESSION_TOKEN = localStorage.getItem('ront_session_token');
+    // Shim supaya SEMUA pemanggilan
+    // google.script.run.withSuccessHandler(...).withFailureHandler(...)
+    // .namaFungsi(args) di bawah TETAP JALAN TANPA DIUBAH SATU BARIS
+    // PUN -- otomatis di-reroute lewat callGAS() lewat fetch() di atas.
+    // Exception di server (dilempar API_WHITELIST[fn]) diteruskan ke
+    // withFailureHandler, sama seperti perilaku google.script.run asli;
+    // hasil normal (termasuk yang isinya {success:false,...} dari
+    // fungsi bisnis, misal password salah) tetap lewat
+    // withSuccessHandler seperti sebelumnya.
+    (function () {
+      function createRunner() {
+        let successHandler = null;
+        let failureHandler = null;
 
-    // Kalau tidak ada token sama sekali, langsung lempar ke halaman
-    // login -- mencegah dashboard kosong/error karena SESSION_TOKEN null.
-    // (Validasi token yang KADALUARSA tetap ditangani oleh backend saat
-    // pemanggilan API pertama gagal, ditangkap masing-masing .catch().)
-    if (!SESSION_TOKEN) {
-      window.location.href = 'login.html';
-    }
+        const runner = {
+          withSuccessHandler: function (fn) { successHandler = fn; return runner; },
+          withFailureHandler: function (fn) { failureHandler = fn; return runner; },
+          withUserObject: function () { return runner; }
+        };
+
+        return new Proxy(runner, {
+          get: function (target, prop) {
+            if (prop in target) return target[prop];
+            if (typeof prop !== 'string') return undefined;
+            return function () {
+              const callArgs = Array.prototype.slice.call(arguments);
+              callGAS(prop, callArgs)
+                .then(function (result) {
+                  if (successHandler) successHandler(result);
+                })
+                .catch(function (err) {
+                  if (failureHandler) failureHandler(err);
+                  else console.error('google.script.run shim error [' + prop + ']:', err);
+                });
+            };
+          }
+        });
+      }
+
+      window.google = window.google || {};
+      window.google.script = window.google.script || {};
+      Object.defineProperty(window.google.script, 'run', {
+        get: function () { return createRunner(); },
+        configurable: true
+      });
+    })();
 
     let activeGlobalTickets = [];
     let globalHelpdeskList  = []; // [{ nik, nama }]
@@ -1558,12 +1629,6 @@ tbody tr:hover td { background: var(--table-th-bg); }
     let warehouseDetailPageSize    = 10;
 
     window.onload = function() {
-      // MIGRASI PWA: kalau tidak ada token, kita sudah redirect ke
-      // login.html di atas -- jangan lanjut fetch data apa pun supaya
-      // tidak ada request percuma (dan console error) sebelum browser
-      // benar-benar pindah halaman.
-      if (!SESSION_TOKEN) return;
-
       // Sidebar narrow-unfoldable: tidak ada lagi state "pinned" yang
       // disimpan — sidebar selalu mulai collapsed dan unfold otomatis
       // lewat hover (lihat initSidebarHoverUnfold()).
@@ -1599,13 +1664,14 @@ tbody tr:hover td { background: var(--table-th-bg); }
 
     function getCurrentUserInfo(callback) {
       try {
-        callGAS('getLoggedInUserInfo', [SESSION_TOKEN])
-          .then(function(info) {
+        google.script.run
+          .withSuccessHandler(function(info) {
             callback(info || { name: 'User', role: '-', email: '' });
           })
-          .catch(function() {
+          .withFailureHandler(function() {
             callback({ name: 'User', role: '-', email: '' });
-          });
+          })
+          .getLoggedInUserInfo(SESSION_TOKEN);
       } catch (e) {
         callback({ name: 'User', role: '-', email: '' });
       }
@@ -1650,8 +1716,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
       document.getElementById('prf-status').textContent   = '-';
       document.getElementById('prf-password-current').value = '';
 
-      callGAS('getMyProfile', [SESSION_TOKEN])
-        .then(function(res) {
+      google.script.run
+        .withSuccessHandler(function(res) {
           if (!res || res.success === false) {
             document.getElementById('prf-username').textContent = '-';
             showProfileMessage((res && res.message) || 'Gagal memuat data profil.', true);
@@ -1662,10 +1728,11 @@ tbody tr:hover td { background: var(--table-th-bg); }
           document.getElementById('prf-status').textContent   = res.status      || '-';
           document.getElementById('prf-password-current').value = res.password  || '';
         })
-        .catch(function(err) {
+        .withFailureHandler(function(err) {
           document.getElementById('prf-username').textContent = '-';
           showProfileMessage('Terjadi kesalahan: ' + (err && err.message ? err.message : err), true);
-        });
+        })
+        .getMyProfile(SESSION_TOKEN);
     }
 
     function togglePasswordVisibility(inputId, btn) {
@@ -1714,8 +1781,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
       btn.disabled = true;
       btn.textContent = 'MENYIMPAN...';
 
-      callGAS('updateMyPassword', [SESSION_TOKEN, newPass])
-        .then(function(res) {
+      google.script.run
+        .withSuccessHandler(function(res) {
           btn.disabled = false;
           btn.textContent = 'SIMPAN PASSWORD';
           if (res && res.success) {
@@ -1727,11 +1794,12 @@ tbody tr:hover td { background: var(--table-th-bg); }
             showProfileMessage((res && res.message) || 'Gagal memperbarui password.', true);
           }
         })
-        .catch(function(err) {
+        .withFailureHandler(function(err) {
           btn.disabled = false;
           btn.textContent = 'SIMPAN PASSWORD';
           showProfileMessage('Terjadi kesalahan: ' + (err && err.message ? err.message : err), true);
-        });
+        })
+        .updateMyPassword(SESSION_TOKEN, newPass);
     }
 
     function handleLogout() {
@@ -1748,20 +1816,20 @@ tbody tr:hover td { background: var(--table-th-bg); }
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...';
 
+      // Hapus token lokal dulu (biar UI langsung terkunci), baru minta
+      // server hapus sesi. Redirect ke login.html TETAP dilakukan
+      // walau panggilan ke server gagal/timeout -- yang penting token
+      // lokal sudah hilang, user tidak akan dianggap login lagi.
       try { localStorage.removeItem('ront_session_token'); } catch (e) {}
 
-      callGAS('logoutSession', [SESSION_TOKEN])
-        .then(function() {
-          // MIGRASI PWA: dulu balikin loginUrl (URL GAS) untuk
-          // window.top.location.href. Sekarang cukup hapus token lokal
-          // dan redirect ke halaman login statis di domain sendiri.
-          localStorage.removeItem('ront_session_token');
+      google.script.run
+        .withSuccessHandler(function() {
           window.location.href = 'login.html';
         })
-        .catch(function() {
-          localStorage.removeItem('ront_session_token');
+        .withFailureHandler(function() {
           window.location.href = 'login.html';
-        });
+        })
+        .logoutSession(SESSION_TOKEN);
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -1788,13 +1856,14 @@ tbody tr:hover td { background: var(--table-th-bg); }
 
     function loadNotifications() {
       try {
-        callGAS('getNotifications', [])
-          .then(function(list) {
+        google.script.run
+          .withSuccessHandler(function(list) {
             renderNotifications(Array.isArray(list) ? list : []);
           })
-          .catch(function() {
+          .withFailureHandler(function() {
             renderNotifications([]);
-          });
+          })
+          .getNotifications();
       } catch (e) {
         renderNotifications([]);
       }
@@ -2043,8 +2112,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
     new Date().toLocaleTimeString()
   );
 
-  callGAS('getTicketsData', [])
-    .then(function(response) {
+  google.script.run
+    .withSuccessHandler(function(response) {
       const fullElapsed = performance.now() - fullStart;
 
       console.log(
@@ -2099,7 +2168,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
       renderHelpdeskDropdown();
       renderDashboardUI(response);
     })
-    .catch(function(err) {
+    .withFailureHandler(function(err) {
       isFetching = false;
 
       const btn = document.querySelector('.btn-refresh');
@@ -2115,7 +2184,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
         'Gagal Memuat Data',
         'Tidak dapat mengambil data Inbox. Silakan coba Refresh Data kembali.'
       );
-    });
+    })
+    .getTicketsData();
 }
 
     function calculateLocalInboxStats() {
@@ -2170,8 +2240,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
         'cursor=', cursorAtRequest
       );
 
-      callGAS('getInboxChanges', [cursorAtRequest])
-        .then(function(response) {
+      google.script.run
+        .withSuccessHandler(function(response) {
           const t1 = performance.now();
 
           deltaSyncInFlight = false;
@@ -2256,7 +2326,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
             );
           }
         })
-        .catch(function(err) {
+        .withFailureHandler(function(err) {
           const tFail = performance.now();
 
           deltaSyncInFlight = false;
@@ -2266,7 +2336,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
             'elapsed=', Math.round(tFail - t0) + ' ms',
             err
           );
-        });
+        })
+        .getInboxChanges(cursorAtRequest);
     }
 
 
@@ -2738,8 +2809,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
 
       const targetRow = selectedRowObj;
 
-      callGAS('updateTicketStatus', [targetRow.rowNum, targetRow.orderId, targetRow.chatId, targetRow.messageId, "ON GOING", "", hd])
-        .then(function(result) {
+      google.script.run
+        .withSuccessHandler(function(result) {
           document.getElementById('pickupModalOverlay').style.display = "none";
           btnConfirm.disabled = false;
           btnConfirm.innerText = "YA, PICKUP";
@@ -2754,12 +2825,13 @@ tbody tr:hover td { background: var(--table-th-bg); }
           }
           fetchDataFromServer();
         })
-        .catch(function(err) {
+        .withFailureHandler(function(err) {
           btnConfirm.disabled = false;
           btnConfirm.innerText = "YA, PICKUP";
           showInfoModal('error', 'Koneksi Gagal', 'Gagal terhubung ke server: ' + err.message);
           fetchDataFromServer();
-        });
+        })
+        .updateTicketStatus(targetRow.rowNum, targetRow.orderId, targetRow.chatId, targetRow.messageId, "ON GOING", "", hd);
     }
 
     function showPickupSuccessModal(orderId, hd) {
@@ -2795,8 +2867,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
       document.querySelectorAll('#updateModalOverlay .btn-modal').forEach(b => b.disabled = true);
       const targetRow = selectedRowObj;
 
-      callGAS('updateTicketStatus', [targetRow.rowNum, targetRow.orderId, targetRow.chatId, targetRow.messageId, status, comment, targetRow.namaHelpdesk])
-        .then(function(result) {
+      google.script.run
+        .withSuccessHandler(function(result) {
           document.getElementById('updateModalOverlay').style.display = "none";
           document.querySelectorAll('#updateModalOverlay .btn-modal').forEach(b => b.disabled = false);
           selectedRowObj = null;
@@ -2808,10 +2880,11 @@ tbody tr:hover td { background: var(--table-th-bg); }
           }
           fetchDataFromServer();
         })
-        .catch(function(err) {
+        .withFailureHandler(function(err) {
           document.querySelectorAll('#updateModalOverlay .btn-modal').forEach(b => b.disabled = false);
           showInfoModal('error', 'Koneksi Gagal', 'Gagal terhubung ke server: ' + err.message);
-        });
+        })
+        .updateTicketStatus(targetRow.rowNum, targetRow.orderId, targetRow.chatId, targetRow.messageId, status, comment, targetRow.namaHelpdesk);
     }
 
     function makeBarValueLabelPlugin(datasetIndex) {
@@ -2983,8 +3056,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
         </td></tr>`;
       }
 
-      callGAS('getTacticalData', [startVal || null, endVal || null])
-        .then(function(response) {
+      google.script.run
+        .withSuccessHandler(function(response) {
           isFetchingTactical = false;
           tacticalLoadedOnce = true;
           const btn = document.querySelector('.btn-refresh');
@@ -3007,6 +3080,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
 
           renderPivotCrossTable('tacticalPivotStatusTableWrap', response.pivotStatusTacticalTicket, 'STATUS TACTICAL');
           renderMonthlyCloseCompleteTable('tacticalMonthlyCloseCompleteWrap', response.monthlyCloseComplete);
+          renderCloseCompleteServiceAreaTable('tacticalCloseCompleteServiceAreaWrap', response.closeCompleteServiceArea);
           lastSavedTacticalMonthlyCloseComplete = response.monthlyCloseComplete;
           populateMonthlyCloseCompleteYearFilter(response.monthlyCloseComplete);
           applyMonthlyCloseCompleteYearFilter(tacMonthlyYearFilterValue);
@@ -3015,7 +3089,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
 
           applyTacticalSearchFilter(false);
         })
-        .catch(function(err) {
+        .withFailureHandler(function(err) {
           isFetchingTactical = false;
           const btn = document.querySelector('.btn-refresh');
           if (btn) btn.innerHTML = `<i class="fa-solid fa-rotate"></i> Refresh Data`;
@@ -3025,7 +3099,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
             <i class="fa-solid fa-triangle-exclamation" style="font-size:22px;opacity:0.6;display:block;margin-bottom:10px;"></i>
             Gagal memuat data tactical: ${escapeHtml(err.message)}
           </td></tr>`;
-        });
+        })
+        .getTacticalData(startVal || null, endVal || null);
     }
 
     // Label info di bawah filter: menampilkan rentang yang sedang aktif
@@ -3331,6 +3406,58 @@ tbody tr:hover td { background: var(--table-th-bg); }
             <tr>
               <th>BULAN</th>
               <th style="text-align:right;">TOTAL/BULAN</th>
+              <th style="text-align:right;">AVG/HARI</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${bodyRowsHtml}${totalRowHtml}
+          </tbody>
+        </table>`;
+    }
+
+    // Tabel "Perolehan CLOSE & COMPLETE per Service Area" -- inset di
+    // samping tabel Rekap Bulanan CLOSE & COMPLETE, dengan struktur SAMA
+    // PERSIS (kolom TOTAL & AVG/HARI), bedanya baris di sini adalah 17
+    // Service Area (label dipendekkan, mis. "SERVICE AREA BANGKALAN" ->
+    // "BANGKALAN") alih-alih bulan. Filter tanggal & pembagi AVG/HARI-nya
+    // sama dengan tabel Rekap Bulanan, jadi baris TOTAL di kedua tabel
+    // (totalAll & avgPerDayAll) selalu identik.
+    // data = { rows: [{label, total, avgPerDay}], totalAll, avgPerDayAll }
+    // dari getTacticalData().
+    function renderCloseCompleteServiceAreaTable(wrapId, data) {
+      const wrap = document.getElementById(wrapId);
+      if (!wrap) return;
+
+      const rows = (data && data.rows) || [];
+      if (rows.length === 0) {
+        wrap.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:24px 0;font-size:11px;">Tidak ada data.</div>`;
+        return;
+      }
+
+      const fmtNum   = function(n) { return Number(n || 0).toLocaleString('id-ID'); };
+      const shortSa  = function(label) { return String(label || '').replace(/^SERVICE AREA\s+/i, ''); };
+
+      const bodyRowsHtml = rows.map(function(r) {
+        return `<tr>
+          <td style="font-weight:500;">${escapeHtml(shortSa(r.label))}</td>
+          <td style="text-align:right;">${fmtNum(r.total)}</td>
+          <td style="text-align:right;">${fmtNum(r.avgPerDay)}</td>
+        </tr>`;
+      }).join('');
+
+      const totalRowHtml = `
+        <tr class="pivot-total-row">
+          <td>TOTAL</td>
+          <td style="text-align:right;color:var(--accent-color);">${fmtNum(data.totalAll)}</td>
+          <td style="text-align:right;color:var(--accent-color);">${fmtNum(data.avgPerDayAll)}</td>
+        </tr>`;
+
+      wrap.innerHTML = `
+        <table class="pivot-fixed-cols">
+          <thead>
+            <tr>
+              <th>SERVICE AREA</th>
+              <th style="text-align:right;">TOTAL</th>
               <th style="text-align:right;">AVG/HARI</th>
             </tr>
           </thead>
@@ -3672,8 +3799,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
 
       if (btn) { btn.disabled = true; btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memuat...`; }
 
-      callGAS('getServiceAreaRunRateChartData', [startInput.value, endInput.value])
-        .then(function(response) {
+      google.script.run
+        .withSuccessHandler(function(response) {
           if (btn) { btn.disabled = false; btn.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Terapkan`; }
           lastSavedSaRunRateChartData = response.chartData;
           lastSavedSaRunRateTarget    = response.target;
@@ -3681,10 +3808,11 @@ tbody tr:hover td { background: var(--table-th-bg); }
           lastSavedSaRunRateDayCount     = response.dayCount;
           buildSaRunRateChart(response.chartData, response.target, response.targetPerDay, response.dayCount);
         })
-        .catch(function(err) {
+        .withFailureHandler(function(err) {
           if (btn) { btn.disabled = false; btn.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Terapkan`; }
           console.error('Gagal mengambil chart Run Rate Service Area:', err.message);
-        });
+        })
+        .getServiceAreaRunRateChartData(startInput.value, endInput.value);
     }
 
     function buildSaRunRateChart(data, target, targetPerDay, dayCount) {
@@ -4005,8 +4133,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
         </td></tr>`;
       }
 
-      callGAS('getServiceAreaWorkOrderData', [])
-        .then(function(response) {
+      google.script.run
+        .withSuccessHandler(function(response) {
           isFetchingWorkOrder = false;
           workOrderLoadedOnce = true;
           const btn = document.querySelector('.btn-refresh');
@@ -4023,7 +4151,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
           activeWorkOrderRows = response.tableData || [];
           applyWorkOrderSearchFilter(false);
         })
-        .catch(function(err) {
+        .withFailureHandler(function(err) {
           isFetchingWorkOrder = false;
           const btn = document.querySelector('.btn-refresh');
           if (btn) btn.innerHTML = `<i class="fa-solid fa-rotate"></i> Refresh Data`;
@@ -4032,7 +4160,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
             <i class="fa-solid fa-triangle-exclamation" style="font-size:22px;opacity:0.6;display:block;margin-bottom:10px;"></i>
             Gagal memuat data work order: ${escapeHtml(err.message)}
           </td></tr>`;
-        });
+        })
+        .getServiceAreaWorkOrderData();
     }
 
     function applyWorkOrderSearchFilter(resetPage) {
@@ -4156,8 +4285,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
         </div>`;
       }
 
-      callGAS('getWarehouseData', [])
-        .then(function(response) {
+      google.script.run
+        .withSuccessHandler(function(response) {
           isFetchingWarehouse = false;
           warehouseLoadedOnce = true;
           const btn = document.querySelector('.btn-refresh');
@@ -4174,7 +4303,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
           activeWarehouseDetailRows = response.detailData || [];
           applyWarehouseDetailSearchFilter(false);
         })
-        .catch(function(err) {
+        .withFailureHandler(function(err) {
           isFetchingWarehouse = false;
           const btn = document.querySelector('.btn-refresh');
           if (btn) btn.innerHTML = `<i class="fa-solid fa-rotate"></i> Refresh Data`;
@@ -4183,7 +4312,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
             <i class="fa-solid fa-triangle-exclamation" style="font-size:22px;opacity:0.6;display:block;margin-bottom:10px;"></i>
             Gagal memuat data warehouse: ${escapeHtml(err.message)}
           </div>`;
-        });
+        })
+        .getWarehouseData();
     }
 
     function renderWarehousePivotTable(wrapId, response) {
