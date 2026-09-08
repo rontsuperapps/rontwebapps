@@ -4,6 +4,32 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Web Ticketing Config</title>
+
+  <!-- ============================================================
+       AUTH GUARD PALING AWAL — v7.1
+       SENGAJA ditaruh sebagai <script> PERTAMA di <head>, sebelum
+       CSS/HTML dashboard di bawahnya sempat di-parse & dirender
+       browser. Kalau tidak ada token, langsung location.replace()
+       ke login.html DI SINI juga (bukan cuma di script utama nanti)
+       supaya tidak ada jeda "kedip" dashboard kosong sebelum pindah
+       halaman. location.replace() dipakai (bukan location.href=...)
+       supaya halaman ini tidak tercatat di history -- tombol Back
+       dari login.html tidak akan balik lagi ke dashboard yang belum
+       authorized.
+       Guard di script utama (dekat akhir <body>) TETAP dipertahankan
+       sebagai lapisan kedua, karena guard di sini HANYA cek "ada
+       token atau tidak" secara lokal -- validasi token itu SUNGGUHAN
+       masih (valid/kadaluarsa) baru terjadi saat callGAS() pertama
+       kali gagal dengan UNAUTHORIZED.
+       ============================================================ -->
+  <script>
+    (function () {
+      if (!localStorage.getItem('ront_session_token')) {
+        window.location.replace('login.html');
+      }
+    })();
+  </script>
+
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -1495,7 +1521,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
     const SESSION_TOKEN = localStorage.getItem('ront_session_token');
 
     if (!SESSION_TOKEN) {
-      window.location.href = 'login.html';
+      window.location.replace('login.html');
     }
 
     // Wrapper pengganti google.script.run. Bentuk request SAMA dengan
@@ -1525,7 +1551,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
       if (data && data.__routerError) {
         if (data.code === 'UNAUTHORIZED') {
           localStorage.removeItem('ront_session_token');
-          window.location.href = 'login.html';
+          window.location.replace('login.html');
         }
         throw new Error(data.message || ('Router error: ' + data.code));
       }
@@ -1824,10 +1850,10 @@ tbody tr:hover td { background: var(--table-th-bg); }
 
       google.script.run
         .withSuccessHandler(function() {
-          window.location.href = 'login.html';
+          window.location.replace('login.html');
         })
         .withFailureHandler(function() {
-          window.location.href = 'login.html';
+          window.location.replace('login.html');
         })
         .logoutSession(SESSION_TOKEN);
     }
