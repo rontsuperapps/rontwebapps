@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+  <!-- MIGRASI PWA — AUTH GUARD PALING AWAL
+       Wajib jadi elemen PERTAMA di <head>, sebelum apa pun (CSS,
+       font, dst) sempat dimuat/dirender. Browser menjalankan script
+       synchronous ini SEBELUM melanjutkan parsing <body>, jadi kalau
+       tidak ada token, redirect ke login.html terjadi sebelum
+       dashboard sempat "kelihatan" sama sekali (tidak ada flash). -->
+  <script>
+    if (!localStorage.getItem('ront_session_token')) {
+      location.replace('login.html');
+    }
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Web Ticketing Config</title>
@@ -1458,11 +1469,45 @@ tbody tr:hover td { background: var(--table-th-bg); }
   </div>
 
   <script>
-    // Token sesi dari URL (?page=dashboard&token=...) — di-inject oleh
-    // doGet() lewat HtmlService.createTemplateFromFile('index') di
-    // web_app.gs. WAJIB dipakai di setiap google.script.run yang perlu
-    // tahu siapa user yang sedang login (profile, ganti password, dll).
-    const SESSION_TOKEN = "<?= sessionToken ?>";
+    /* ============================================================
+       MIGRASI PWA — KONFIGURASI API GAS
+       ============================================================
+       Ganti GAS_EXEC_URL dengan URL deployment Web App GAS kamu
+       (harus SAMA dengan yang dipakai di login.html).
+       ============================================================ */
+    const GAS_EXEC_URL = 'PASTE_URL_DEPLOYMENT_GAS_DI_SINI';
+
+    // Wrapper pengganti google.script.run. Lihat penjelasan lengkap
+    // soal kenapa text/plain (bukan application/json) di komentar
+    // doPost() pada web_apps.gs.
+    async function callGAS(fn, args) {
+      const res = await fetch(GAS_EXEC_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ fn: fn, args: args || [] })
+      });
+
+      if (!res.ok) {
+        throw new Error('HTTP ' + res.status + ' dari server GAS.');
+      }
+
+      return res.json();
+    }
+
+    // MIGRASI PWA: token sesi dulu di-inject via scriptlet
+    // <?= sessionToken ?> (karena index.html dulu di-render oleh GAS
+    // lewat HtmlService.createTemplateFromFile). Sekarang index.html
+    // adalah file statis di GitHub Pages, jadi token dibaca dari
+    // localStorage (disimpan oleh login.html setelah login sukses).
+    const SESSION_TOKEN = localStorage.getItem('ront_session_token');
+
+    // Kalau tidak ada token sama sekali, langsung lempar ke halaman
+    // login -- mencegah dashboard kosong/error karena SESSION_TOKEN null.
+    // (Validasi token yang KADALUARSA tetap ditangani oleh backend saat
+    // pemanggilan API pertama gagal, ditangkap masing-masing .catch().)
+    if (!SESSION_TOKEN) {
+      window.location.href = 'login.html';
+    }
 
     let activeGlobalTickets = [];
     let globalHelpdeskList  = []; // [{ nik, nama }]
@@ -1513,6 +1558,12 @@ tbody tr:hover td { background: var(--table-th-bg); }
     let warehouseDetailPageSize    = 10;
 
     window.onload = function() {
+      // MIGRASI PWA: kalau tidak ada token, kita sudah redirect ke
+      // login.html di atas -- jangan lanjut fetch data apa pun supaya
+      // tidak ada request percuma (dan console error) sebelum browser
+      // benar-benar pindah halaman.
+      if (!SESSION_TOKEN) return;
+
       // Sidebar narrow-unfoldable: tidak ada lagi state "pinned" yang
       // disimpan — sidebar selalu mulai collapsed dan unfold otomatis
       // lewat hover (lihat initSidebarHoverUnfold()).
@@ -1548,14 +1599,13 @@ tbody tr:hover td { background: var(--table-th-bg); }
 
     function getCurrentUserInfo(callback) {
       try {
-        google.script.run
-          .withSuccessHandler(function(info) {
+        callGAS('getLoggedInUserInfo', [SESSION_TOKEN])
+          .then(function(info) {
             callback(info || { name: 'User', role: '-', email: '' });
           })
-          .withFailureHandler(function() {
+          .catch(function() {
             callback({ name: 'User', role: '-', email: '' });
-          })
-          .getLoggedInUserInfo(SESSION_TOKEN);
+          });
       } catch (e) {
         callback({ name: 'User', role: '-', email: '' });
       }
@@ -1600,8 +1650,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
       document.getElementById('prf-status').textContent   = '-';
       document.getElementById('prf-password-current').value = '';
 
-      google.script.run
-        .withSuccessHandler(function(res) {
+      callGAS('getMyProfile', [SESSION_TOKEN])
+        .then(function(res) {
           if (!res || res.success === false) {
             document.getElementById('prf-username').textContent = '-';
             showProfileMessage((res && res.message) || 'Gagal memuat data profil.', true);
@@ -1612,11 +1662,10 @@ tbody tr:hover td { background: var(--table-th-bg); }
           document.getElementById('prf-status').textContent   = res.status      || '-';
           document.getElementById('prf-password-current').value = res.password  || '';
         })
-        .withFailureHandler(function(err) {
+        .catch(function(err) {
           document.getElementById('prf-username').textContent = '-';
           showProfileMessage('Terjadi kesalahan: ' + (err && err.message ? err.message : err), true);
-        })
-        .getMyProfile(SESSION_TOKEN);
+        });
     }
 
     function togglePasswordVisibility(inputId, btn) {
@@ -1665,8 +1714,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
       btn.disabled = true;
       btn.textContent = 'MENYIMPAN...';
 
-      google.script.run
-        .withSuccessHandler(function(res) {
+      callGAS('updateMyPassword', [SESSION_TOKEN, newPass])
+        .then(function(res) {
           btn.disabled = false;
           btn.textContent = 'SIMPAN PASSWORD';
           if (res && res.success) {
@@ -1678,12 +1727,11 @@ tbody tr:hover td { background: var(--table-th-bg); }
             showProfileMessage((res && res.message) || 'Gagal memperbarui password.', true);
           }
         })
-        .withFailureHandler(function(err) {
+        .catch(function(err) {
           btn.disabled = false;
           btn.textContent = 'SIMPAN PASSWORD';
           showProfileMessage('Terjadi kesalahan: ' + (err && err.message ? err.message : err), true);
-        })
-        .updateMyPassword(SESSION_TOKEN, newPass);
+        });
     }
 
     function handleLogout() {
@@ -1702,14 +1750,18 @@ tbody tr:hover td { background: var(--table-th-bg); }
 
       try { localStorage.removeItem('ront_session_token'); } catch (e) {}
 
-      google.script.run
-        .withSuccessHandler(function(loginUrl) {
-          window.top.location.href = loginUrl || window.top.location.href;
+      callGAS('logoutSession', [SESSION_TOKEN])
+        .then(function() {
+          // MIGRASI PWA: dulu balikin loginUrl (URL GAS) untuk
+          // window.top.location.href. Sekarang cukup hapus token lokal
+          // dan redirect ke halaman login statis di domain sendiri.
+          localStorage.removeItem('ront_session_token');
+          window.location.href = 'login.html';
         })
-        .withFailureHandler(function() {
-          window.top.location.reload();
-        })
-        .logoutSession(SESSION_TOKEN);
+        .catch(function() {
+          localStorage.removeItem('ront_session_token');
+          window.location.href = 'login.html';
+        });
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -1736,14 +1788,13 @@ tbody tr:hover td { background: var(--table-th-bg); }
 
     function loadNotifications() {
       try {
-        google.script.run
-          .withSuccessHandler(function(list) {
+        callGAS('getNotifications', [])
+          .then(function(list) {
             renderNotifications(Array.isArray(list) ? list : []);
           })
-          .withFailureHandler(function() {
+          .catch(function() {
             renderNotifications([]);
-          })
-          .getNotifications();
+          });
       } catch (e) {
         renderNotifications([]);
       }
@@ -1992,8 +2043,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
     new Date().toLocaleTimeString()
   );
 
-  google.script.run
-    .withSuccessHandler(function(response) {
+  callGAS('getTicketsData', [])
+    .then(function(response) {
       const fullElapsed = performance.now() - fullStart;
 
       console.log(
@@ -2048,7 +2099,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
       renderHelpdeskDropdown();
       renderDashboardUI(response);
     })
-    .withFailureHandler(function(err) {
+    .catch(function(err) {
       isFetching = false;
 
       const btn = document.querySelector('.btn-refresh');
@@ -2064,8 +2115,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
         'Gagal Memuat Data',
         'Tidak dapat mengambil data Inbox. Silakan coba Refresh Data kembali.'
       );
-    })
-    .getTicketsData();
+    });
 }
 
     function calculateLocalInboxStats() {
@@ -2120,8 +2170,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
         'cursor=', cursorAtRequest
       );
 
-      google.script.run
-        .withSuccessHandler(function(response) {
+      callGAS('getInboxChanges', [cursorAtRequest])
+        .then(function(response) {
           const t1 = performance.now();
 
           deltaSyncInFlight = false;
@@ -2206,7 +2256,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
             );
           }
         })
-        .withFailureHandler(function(err) {
+        .catch(function(err) {
           const tFail = performance.now();
 
           deltaSyncInFlight = false;
@@ -2216,8 +2266,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
             'elapsed=', Math.round(tFail - t0) + ' ms',
             err
           );
-        })
-        .getInboxChanges(cursorAtRequest);
+        });
     }
 
 
@@ -2689,8 +2738,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
 
       const targetRow = selectedRowObj;
 
-      google.script.run
-        .withSuccessHandler(function(result) {
+      callGAS('updateTicketStatus', [targetRow.rowNum, targetRow.orderId, targetRow.chatId, targetRow.messageId, "ON GOING", "", hd])
+        .then(function(result) {
           document.getElementById('pickupModalOverlay').style.display = "none";
           btnConfirm.disabled = false;
           btnConfirm.innerText = "YA, PICKUP";
@@ -2705,13 +2754,12 @@ tbody tr:hover td { background: var(--table-th-bg); }
           }
           fetchDataFromServer();
         })
-        .withFailureHandler(function(err) {
+        .catch(function(err) {
           btnConfirm.disabled = false;
           btnConfirm.innerText = "YA, PICKUP";
           showInfoModal('error', 'Koneksi Gagal', 'Gagal terhubung ke server: ' + err.message);
           fetchDataFromServer();
-        })
-        .updateTicketStatus(targetRow.rowNum, targetRow.orderId, targetRow.chatId, targetRow.messageId, "ON GOING", "", hd);
+        });
     }
 
     function showPickupSuccessModal(orderId, hd) {
@@ -2747,8 +2795,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
       document.querySelectorAll('#updateModalOverlay .btn-modal').forEach(b => b.disabled = true);
       const targetRow = selectedRowObj;
 
-      google.script.run
-        .withSuccessHandler(function(result) {
+      callGAS('updateTicketStatus', [targetRow.rowNum, targetRow.orderId, targetRow.chatId, targetRow.messageId, status, comment, targetRow.namaHelpdesk])
+        .then(function(result) {
           document.getElementById('updateModalOverlay').style.display = "none";
           document.querySelectorAll('#updateModalOverlay .btn-modal').forEach(b => b.disabled = false);
           selectedRowObj = null;
@@ -2760,11 +2808,10 @@ tbody tr:hover td { background: var(--table-th-bg); }
           }
           fetchDataFromServer();
         })
-        .withFailureHandler(function(err) {
+        .catch(function(err) {
           document.querySelectorAll('#updateModalOverlay .btn-modal').forEach(b => b.disabled = false);
           showInfoModal('error', 'Koneksi Gagal', 'Gagal terhubung ke server: ' + err.message);
-        })
-        .updateTicketStatus(targetRow.rowNum, targetRow.orderId, targetRow.chatId, targetRow.messageId, status, comment, targetRow.namaHelpdesk);
+        });
     }
 
     function makeBarValueLabelPlugin(datasetIndex) {
@@ -2936,8 +2983,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
         </td></tr>`;
       }
 
-      google.script.run
-        .withSuccessHandler(function(response) {
+      callGAS('getTacticalData', [startVal || null, endVal || null])
+        .then(function(response) {
           isFetchingTactical = false;
           tacticalLoadedOnce = true;
           const btn = document.querySelector('.btn-refresh');
@@ -2968,7 +3015,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
 
           applyTacticalSearchFilter(false);
         })
-        .withFailureHandler(function(err) {
+        .catch(function(err) {
           isFetchingTactical = false;
           const btn = document.querySelector('.btn-refresh');
           if (btn) btn.innerHTML = `<i class="fa-solid fa-rotate"></i> Refresh Data`;
@@ -2978,8 +3025,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
             <i class="fa-solid fa-triangle-exclamation" style="font-size:22px;opacity:0.6;display:block;margin-bottom:10px;"></i>
             Gagal memuat data tactical: ${escapeHtml(err.message)}
           </td></tr>`;
-        })
-        .getTacticalData(startVal || null, endVal || null);
+        });
     }
 
     // Label info di bawah filter: menampilkan rentang yang sedang aktif
@@ -3626,8 +3672,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
 
       if (btn) { btn.disabled = true; btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memuat...`; }
 
-      google.script.run
-        .withSuccessHandler(function(response) {
+      callGAS('getServiceAreaRunRateChartData', [startInput.value, endInput.value])
+        .then(function(response) {
           if (btn) { btn.disabled = false; btn.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Terapkan`; }
           lastSavedSaRunRateChartData = response.chartData;
           lastSavedSaRunRateTarget    = response.target;
@@ -3635,11 +3681,10 @@ tbody tr:hover td { background: var(--table-th-bg); }
           lastSavedSaRunRateDayCount     = response.dayCount;
           buildSaRunRateChart(response.chartData, response.target, response.targetPerDay, response.dayCount);
         })
-        .withFailureHandler(function(err) {
+        .catch(function(err) {
           if (btn) { btn.disabled = false; btn.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Terapkan`; }
           console.error('Gagal mengambil chart Run Rate Service Area:', err.message);
-        })
-        .getServiceAreaRunRateChartData(startInput.value, endInput.value);
+        });
     }
 
     function buildSaRunRateChart(data, target, targetPerDay, dayCount) {
@@ -3960,8 +4005,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
         </td></tr>`;
       }
 
-      google.script.run
-        .withSuccessHandler(function(response) {
+      callGAS('getServiceAreaWorkOrderData', [])
+        .then(function(response) {
           isFetchingWorkOrder = false;
           workOrderLoadedOnce = true;
           const btn = document.querySelector('.btn-refresh');
@@ -3978,7 +4023,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
           activeWorkOrderRows = response.tableData || [];
           applyWorkOrderSearchFilter(false);
         })
-        .withFailureHandler(function(err) {
+        .catch(function(err) {
           isFetchingWorkOrder = false;
           const btn = document.querySelector('.btn-refresh');
           if (btn) btn.innerHTML = `<i class="fa-solid fa-rotate"></i> Refresh Data`;
@@ -3987,8 +4032,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
             <i class="fa-solid fa-triangle-exclamation" style="font-size:22px;opacity:0.6;display:block;margin-bottom:10px;"></i>
             Gagal memuat data work order: ${escapeHtml(err.message)}
           </td></tr>`;
-        })
-        .getServiceAreaWorkOrderData();
+        });
     }
 
     function applyWorkOrderSearchFilter(resetPage) {
@@ -4112,8 +4156,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
         </div>`;
       }
 
-      google.script.run
-        .withSuccessHandler(function(response) {
+      callGAS('getWarehouseData', [])
+        .then(function(response) {
           isFetchingWarehouse = false;
           warehouseLoadedOnce = true;
           const btn = document.querySelector('.btn-refresh');
@@ -4130,7 +4174,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
           activeWarehouseDetailRows = response.detailData || [];
           applyWarehouseDetailSearchFilter(false);
         })
-        .withFailureHandler(function(err) {
+        .catch(function(err) {
           isFetchingWarehouse = false;
           const btn = document.querySelector('.btn-refresh');
           if (btn) btn.innerHTML = `<i class="fa-solid fa-rotate"></i> Refresh Data`;
@@ -4139,8 +4183,7 @@ tbody tr:hover td { background: var(--table-th-bg); }
             <i class="fa-solid fa-triangle-exclamation" style="font-size:22px;opacity:0.6;display:block;margin-bottom:10px;"></i>
             Gagal memuat data warehouse: ${escapeHtml(err.message)}
           </div>`;
-        })
-        .getWarehouseData();
+        });
     }
 
     function renderWarehousePivotTable(wrapId, response) {
