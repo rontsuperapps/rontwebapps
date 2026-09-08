@@ -1434,6 +1434,17 @@
        ============================================================ */
 
     window.onload = function() {
+      // MIGRASI PWA: kalau sudah ada token sesi tersimpan (belum logout
+      // & belum expired di server), tidak perlu login ulang -- langsung
+      // ke dashboard. index.html sendiri yang akan mem-validasi token
+      // ini ke server tiap kali fetch data (lihat callGAS di sana),
+      // jadi kalau ternyata sudah kadaluarsa, index.html yang akan
+      // melempar balik ke sini.
+      if (localStorage.getItem('ront_session_token')) {
+        window.location.href = 'index.html';
+        return;
+      }
+
       const saved = localStorage.getItem('nimon_user');
 
       if (saved) {
