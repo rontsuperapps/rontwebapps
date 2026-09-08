@@ -1572,14 +1572,21 @@ tbody tr:hover td { background: var(--table-th-bg); }
       function createRunner() {
         let successHandler = null;
         let failureHandler = null;
+        let proxy; // dideklarasi dulu, diisi setelah Proxy dibuat di bawah
 
+        // PENTING: method-method ini WAJIB return "proxy" (bukan "runner"
+        // mentah), supaya rantai .withSuccessHandler(...).withFailureHandler(...)
+        // .namaFungsi(...) tetap lewat get-trap Proxy di bawah. Kalau
+        // return "runner" polos, pemanggilan .namaFungsi(...) berikutnya
+        // jatuh ke objek biasa yang tidak punya properti itu sama sekali
+        // -> "...is not a function".
         const runner = {
-          withSuccessHandler: function (fn) { successHandler = fn; return runner; },
-          withFailureHandler: function (fn) { failureHandler = fn; return runner; },
-          withUserObject: function () { return runner; }
+          withSuccessHandler: function (fn) { successHandler = fn; return proxy; },
+          withFailureHandler: function (fn) { failureHandler = fn; return proxy; },
+          withUserObject: function () { return proxy; }
         };
 
-        return new Proxy(runner, {
+        proxy = new Proxy(runner, {
           get: function (target, prop) {
             if (prop in target) return target[prop];
             if (typeof prop !== 'string') return undefined;
@@ -1596,6 +1603,8 @@ tbody tr:hover td { background: var(--table-th-bg); }
             };
           }
         });
+
+        return proxy;
       }
 
       window.google = window.google || {};
