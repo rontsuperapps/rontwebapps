@@ -1441,7 +1441,7 @@
       // jadi kalau ternyata sudah kadaluarsa, index.html yang akan
       // melempar balik ke sini.
       if (localStorage.getItem('ront_session_token')) {
-        window.location.href = 'index.html';
+        window.location.replace('index.html');
         return;
       }
 
